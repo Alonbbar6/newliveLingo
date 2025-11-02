@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveLingo - Real-Time Text Detection & Translation</title>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 25px;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        #video {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .file-upload {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .file-upload-label {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(250, 112, 154, 0.6);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .settings {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .setting-row label {
+            font-weight: 600;
+            color: #333;
+            min-width: 150px;
+        }
+
+        select {
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            font-size: 1rem;
+            cursor: pointer;
+            background: white;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .slider-value {
+            font-weight: 700;
+            color: #667eea;
+            min-width: 50px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.processing {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .results {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .text-region {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .text-region .label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .text-region .original {
+            color: #333;
+            font-weight: 600;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .text-region .translated {
+            color: #667eea;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 10px;
+            background: #f5f0ff;
+            border-radius: 5px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .setting-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .powered-by {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .powered-by strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 LiveLingo</h1>
+        <p class="subtitle">Real-Time Text Detection & Translation</p>
+
+        <div class="info-box">
+            <h3>✨ Features</h3>
+            <ul>
+                <li><strong>Real-time Detection:</strong> Use your webcam to detect text instantly</li>
+                <li><strong>OCR Technology:</strong> Powered by Tesseract.js for accurate text recognition</li>
+                <li><strong>Live Translation:</strong> Automatic translation to your selected language</li>
+                <li><strong>Image Upload:</strong> Upload images for text detection and translation</li>
+            </ul>
+        </div>
+
+        <div id="status" class="status loading">
+            <div class="spinner"></div>
+            Initializing OCR engine...
+        </div>
+
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn" disabled>📹 Start Webcam</button>
+            <button id="stopBtn" class="danger" disabled>⏹️ Stop Webcam</button>
+            <button id="captureBtn" class="success" disabled>📸 Capture & Translate</button>
+        </div>
+
+        <div class="file-upload">
+            <label for="imageUpload" class="file-upload-label">📁 Upload Image</label>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+
+        <div class="settings">
+            <h3 style="color: #333; margin-bottom: 15px;">⚙️ Settings</h3>
+
+            <div class="setting-row">
+                <label for="targetLang">Target Language:</label>
+                <select id="targetLang">
+                    <option value="es">Spanish (Español)</option>
+                    <option value="fr">French (Français)</option>
+                    <option value="de">German (Deutsch)</option>
+                    <option value="it">Italian (Italiano)</option>
+                    <option value="pt">Portuguese (Português)</option>
+                    <option value="zh">Chinese (中文)</option>
+                    <option value="ja">Japanese (日本語)</option>
+                    <option value="ko">Korean (한국어)</option>
+                    <option value="ar">Arabic (العربية)</option>
+                    <option value="ru">Russian (Русский)</option>
+                </select>
+            </div>
+
+            <div class="setting-row">
+                <label for="confidence">OCR Confidence:</label>
+                <input type="range" id="confidence" min="0" max="100" value="60">
+                <span class="slider-value" id="confidenceValue">60%</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Processing Time</div>
+                <div class="stat-value" id="processTime">0ms</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Text Regions</div>
+                <div class="stat-value" id="textCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Translations</div>
+                <div class="stat-value" id="translationCount">0</div>
+            </div>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <h3>📝 Detected Text & Translations</h3>
+            <div id="resultsContent"></div>
+        </div>
+
+        <div class="powered-by">
+            Powered by <strong>Tesseract.js</strong> (OCR) + <strong>MyMemory API</strong> (Translation)
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let stream = null;
+        let tesseractWorker = null;
+        let confidenceThreshold = 60;
+        let targetLanguage = 'es';
+
+        // UI Elements
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const statusDiv = document.getElementById('status');
+        const imageUpload = document.getElementById('imageUpload');
+        const confidenceSlider = document.getElementById('confidence');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const targetLangSelect = document.getElementById('targetLang');
+
+        // Initialize Tesseract
+        async function initTesseract() {
+            try {
+                updateStatus('loading', 'Initializing Tesseract.js OCR Engine...');
+
+                tesseractWorker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => {
+                        if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract' || m.status === 'loading language traineddata') {
+                            updateStatus('loading', `${m.status}... ${Math.round(m.progress * 100)}%`);
+                        }
+                    }
+                });
+
+                await tesseractWorker.setParameters({
+                    tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+                });
+
+                updateStatus('ready', '✅ Ready! Click "Start Webcam" or upload an image');
+                startBtn.disabled = false;
+            } catch (error) {
+                console.error('Tesseract initialization error:', error);
+                updateStatus('error', '❌ Failed to initialize OCR engine');
+            }
+        }
+
+        // Update status
+        function updateStatus(type, message) {
+            statusDiv.className = `status ${type}`;
+            if (type === 'loading') {
+                statusDiv.innerHTML = `<div class="spinner"></div>${message}`;
+            } else {
+                statusDiv.innerHTML = message;
+            }
+        }
+
+        // Start webcam
+        async function startWebcam() {
+            try {
+                updateStatus('loading', 'Requesting camera access...');
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+
+                video.srcObject = stream;
+
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+
+                    updateStatus('ready', '✅ Camera active! Click "Capture & Translate" when ready');
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    captureBtn.disabled = false;
+                };
+            } catch (error) {
+                console.error('Webcam access error:', error);
+                updateStatus('error', '❌ Camera access denied or not available');
+            }
+        }
+
+        // Stop webcam
+        function stopWebcam() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                stream = null;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            captureBtn.disabled = true;
+
+            updateStatus('ready', '✅ Camera stopped. Click "Start Webcam" to restart');
+        }
+
+        // Translate text using MyMemory API (free, no API key needed)
+        async function translateText(text, targetLang) {
+            if (!text || text.trim().length === 0) return '';
+
+            try {
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.responseStatus === 200) {
+                    return data.responseData.translatedText;
+                } else {
+                    console.error('Translation error:', data);
+                    return '[Translation failed]';
+                }
+            } catch (error) {
+                console.error('Translation error:', error);
+                return '[Translation error]';
+            }
+        }
+
+        // Process image (from webcam or upload)
+        async function processImage(imageSource) {
+            if (!tesseractWorker) return;
+
+            const startTime = performance.now();
+            updateStatus('processing', '🔍 Detecting and translating text...');
+
+            try {
+                // Perform OCR
+                const result = await tesseractWorker.recognize(imageSource);
+
+                // Filter words by confidence
+                const words = result.data.words.filter(word => word.confidence >= confidenceThreshold);
+
+                document.getElementById('textCount').textContent = words.length;
+
+                // Draw bounding boxes on canvas
+                if (typeof imageSource !== 'string') {
+                    ctx.drawImage(imageSource, 0, 0, canvas.width, canvas.height);
+                }
+
+                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'];
+
+                words.forEach((word, index) => {
+                    const box = word.bbox;
+                    const color = colors[index % colors.length];
+
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
+
+                    ctx.fillStyle = color + '33';
+                    ctx.fillRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
+                });
+
+                // Translate detected text
+                const translationPromises = words.map(word => translateText(word.text, targetLanguage));
+                const translations = await Promise.all(translationPromises);
+
+                // Display results
+                const resultsDiv = document.getElementById('results');
+                const resultsContent = document.getElementById('resultsContent');
+
+                if (words.length > 0) {
+                    let html = '';
+                    words.forEach((word, index) => {
+                        html += `
+                            <div class="text-region">
+                                <div class="label">Original (English)</div>
+                                <div class="original">📝 ${word.text}</div>
+                                <div class="label">${targetLangSelect.options[targetLangSelect.selectedIndex].text}</div>
+                                <div class="translated">🌍 ${translations[index]}</div>
+                            </div>
+                        `;
+                    });
+                    resultsContent.innerHTML = html;
+                    resultsDiv.style.display = 'block';
+                    document.getElementById('translationCount').textContent = translations.filter(t => t && !t.includes('[')).length;
+                } else {
+                    resultsContent.innerHTML = '<p style="color: #666;">No text detected. Try with clearer text or adjust confidence threshold.</p>';
+                    resultsDiv.style.display = 'block';
+                    document.getElementById('translationCount').textContent = '0';
+                }
+
+                const endTime = performance.now();
+                document.getElementById('processTime').textContent = `${Math.round(endTime - startTime)}ms`;
+
+                updateStatus('ready', '✅ Processing complete!');
+                resultsDiv.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Processing error:', error);
+                updateStatus('error', '❌ Error processing image');
+            }
+        }
+
+        // Capture from webcam
+        async function captureFromWebcam() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            await processImage(canvas.toDataURL('image/png'));
+        }
+
+        // Process uploaded image
+        function processUploadedImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    processImage(e.target.result);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startWebcam);
+        stopBtn.addEventListener('click', stopWebcam);
+        captureBtn.addEventListener('click', captureFromWebcam);
+
+        confidenceSlider.addEventListener('input', (e) => {
+            confidenceThreshold = parseInt(e.target.value);
+            confidenceValue.textContent = confidenceThreshold + '%';
+        });
+
+        targetLangSelect.addEventListener('change', (e) => {
+            targetLanguage = e.target.value;
+        });
+
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (stream) stopWebcam();
+                processUploadedImage(file);
+            }
+        });
+
+        // Initialize on page load
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            updateStatus('error', '❌ Your browser does not support webcam access');
+        } else {
+            initTesseract();
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (tesseractWorker) {
+                tesseractWorker.terminate();
+            }
+        });
+    </script>
+</body>
+</html>
