@@ -1,26 +1,6 @@
-# Python files (not needed for browser app)
-*.py
-*.pyc
-__pycache__/
-*.so
-*.egg
-*.egg-info
-dist/
-build/
-venv/
-env/
-
-# Node modules (if any)
-node_modules/
-package-lock.json
-npm-debug.log
-
 # OS files
 .DS_Store
 Thumbs.db
-*.swp
-*.swo
-*~
 
 # IDE files
 .vscode/
@@ -30,22 +10,14 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+*~
+.swp
+.swo
 
-# Keep only the essential files
-!index.html
-!netlify.toml
-!_redirects
-!README.md
-!.gitignore
-
-# Exclude everything else in root
-/app.py
-/requirements.txt
-/templates/
-/web-version/
-/simple_text_detector.py
-/realtime_text_detector.py
-/text-detection-app.html
-/text-detector.html
-/openCvResearch.txt
-/frozen_east_text_detection.pb
+# Don't commit these if they appear
+node_modules/
+*.py
+*.pyc
+__pycache__/
+venv/
+env/
